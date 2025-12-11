@@ -4,7 +4,12 @@ import json
 import os
 import re
 import whisper
+import torch
 from datetime import datetime
+import ssl
+
+# Bypass SSL verification for model downloads (fixes self-signed certificate errors)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # Configuration
 RSS_URL = "https://www.omnycontent.com/d/playlist/61ee9ca4-a1b2-4660-9651-b2b70035edf5/0c13f220-bf12-49ed-9d47-b2f100f7c60c/c39fca6c-3f36-4b12-a7e8-b2f100f7c61a/podcast.rss"
@@ -17,7 +22,7 @@ EPISODES_FILE = os.path.join(DATA_DIR, "episodes.json")
 
 # Limits
 EPISODE_LIMIT = None # Set to None to process all episodes
-TRANSCRIPTION_LIMIT = 3 # Only transcribe the first N episodes
+TRANSCRIPTION_LIMIT = 5 # Only transcribe the first N episodes
 
 def ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -44,12 +49,9 @@ def download_file(url, filepath):
     except Exception as e:
         print(f"Error downloading {url}: {e}")
 
-def transcribe_audio(audio_path):
+def transcribe_audio(model, audio_path):
     print(f"Transcribing {audio_path}...")
     try:
-        # Load model (using 'base' for speed in prototype)
-        model = whisper.load_model("base")
-        
         # Transcribe
         result = model.transcribe(audio_path, language="nl") # Dutch
         return result["text"]
@@ -123,6 +125,15 @@ def main():
         print(f"Failed to fetch RSS: {e}")
         return
     
+    # Load the model once
+    print("Loading transcription model...")
+    # Force CPU to avoid PyTorch MPS backend errors
+    device = "cpu"
+    print("Using CPU for transcription.")
+
+    # Using "medium" for better accuracy, which the M3 can handle well.
+    transcription_model = whisper.load_model("medium", device=device)
+    
     episodes = []
     
     # Load existing data to avoid re-work if we run multiple times
@@ -142,84 +153,102 @@ def main():
             break
             
         guid = entry.get('id', entry.link)
-        
-        if guid in existing_guids:
-            # We might want to update details, but skip for now
-            count += 1
-            continue
-
         title = entry.title
         print(f"Processing: {title}")
+
+        # Find existing episode or create new one
+        episode = next((ep for ep in episodes if ep['guid'] == guid), None)
+        is_new = False
         
+        if episode is None:
+            is_new = True
+            episode = {
+                'guid': guid,
+                # Fields to be populated below
+                'title': title,
+                'published': entry.published,
+                'description': entry.summary,
+                'original_link': entry.link,
+                'keywords': []
+            }
+        else:
+            # Update mutable metadata
+            episode['title'] = title
+            episode['published'] = entry.published
+            episode['description'] = entry.summary
+            episode['original_link'] = entry.link
+
         # Get Audio URL
         audio_url = None
         for link in entry.links:
             if link['type'].startswith('audio/'):
                 audio_url = link['href']
                 break
+        episode['audio_file'] = audio_url
         
         if not audio_url:
             print("No audio found, skipping.")
+            if is_new: # Only append if it's valid enough to keep? Or keep even without audio? 
+                       # Existing logic kept skipped ones out of the list if no audio.
+                pass 
+            # If it existed but now has no audio, we leave it? 
+            # For parity with old script: skip loop iteration if no audio
+            count += 1 
             continue
             
         # Get Image URL
         image_url = entry.image.href if 'image' in entry else None
         if not image_url and 'itunes_image' in entry:
             image_url = entry.itunes_image.get('href')
+        episode['image_file'] = image_url
 
-        # Filenames
-        safe_title = sanitize_filename(title)
-        
-        keywords = []
-        transcription_file_entry = None
-        
-        # Logic to decide if we transcribe
+        # Transcription Logic
+        # We process transcription if we are within the limit
         if count < TRANSCRIPTION_LIMIT:
+            safe_title = sanitize_filename(title)
             audio_filename = f"{safe_title}.mp3"
             audio_path = os.path.join(AUDIO_DIR, audio_filename)
-            
-            # Download Audio (Still needed for transcription)
-            download_file(audio_url, audio_path)
-            
-            # Transcribe (Stub/Real)
-            transcription = "Transcription pending..."
             transcription_filename = f"{safe_title}.txt"
             transcription_path = os.path.join(TRANSCRIPTION_DIR, transcription_filename)
             
-            if os.path.exists(transcription_path):
-                print(f"Loading existing transcription from {transcription_path}")
-                with open(transcription_path, 'r') as f:
-                    transcription = f.read()
-            elif os.path.exists(audio_path):
-                transcription = transcribe_audio(audio_path)
+            # Check if we need to transcribe
+            # Need to transcribe if:
+            # 1. 'transcription_file' is not set in episode data
+            # 2. OR the file pointed to does not exist
+            # 3. AND we haven't already generated the file in previous runs (checked by os.path.exists below)
             
-            # Trim transcription
-            transcription = trim_transcription(transcription)
+            current_transcript_file = episode.get('transcription_file')
+            transcript_exists = current_transcript_file and os.path.exists(current_transcript_file)
+            
+            if not transcript_exists:
+                # Check if we have the file locally even if json doesn't know
+                if os.path.exists(transcription_path):
+                    print(f"Linking existing transcription: {transcription_path}")
+                    with open(transcription_path, 'r') as f:
+                        text = f.read()
+                    episode['transcription_file'] = f"assets/transcriptions/{transcription_filename}"
+                    if not episode.get('keywords'):
+                        episode['keywords'] = extract_keywords(text)
+                else:
+                    # Perform Transcription
+                    download_file(audio_url, audio_path)
+                    if os.path.exists(audio_path):
+                        transcription = transcribe_audio(transcription_model, audio_path)
+                        transcription = trim_transcription(transcription)
+                        
+                        keywords = extract_keywords(transcription)
+                        
+                        with open(transcription_path, "w") as f:
+                            f.write(transcription)
+                        
+                        episode['transcription_file'] = f"assets/transcriptions/{transcription_filename}"
+                        episode['keywords'] = keywords
+                    else:
+                        print(f"Audio file missing, cannot transcribe: {audio_path}")
 
-            keywords = extract_keywords(transcription)
-
-            # Save transcription to file (update/create)
-            with open(transcription_path, "w") as f:
-                f.write(transcription)
-                
-            transcription_file_entry = f"assets/transcriptions/{transcription_filename}"
-        else:
-            # print("Skipping transcription (limit reached)")
-            pass
-
-        episode_data = {
-            'guid': guid,
-            'title': title,
-            'published': entry.published,
-            'description': entry.summary,
-            'audio_file': audio_url,
-            'image_file': image_url,
-            'transcription_file': transcription_file_entry,
-            'keywords': keywords,
-            'original_link': entry.link
-        }
-        
-        episodes.append(episode_data)
+        if is_new:
+            episodes.append(episode)
+            
         count += 1
         
     # Save Data
