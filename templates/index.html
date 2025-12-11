@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echt Gebeurd Archief</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        .episode-list {
+            flex: 1;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #search-input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        #list-container {
+            overflow-y: auto;
+            flex: 1;
+        }
+        .episode-item {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .episode-item:hover {
+            background-color: #f9f9f9;
+        }
+        .episode-item.active {
+            background-color: #eef;
+            border-left: 4px solid #333;
+        }
+        .episode-detail {
+            flex: 2;
+            background: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .hidden {
+            display: none !important;
+        }
+        img.episode-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .keywords {
+            margin: 1rem 0;
+        }
+        .keyword-tag {
+            display: inline-block;
+            background: #e1ecf4;
+            color: #39739d;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        audio {
+            width: 100%;
+            margin: 1rem 0;
+        }
+        .transcription {
+            background: #fdfdfd;
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .episode-list {
+                max-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Echt Gebeurd Archief</h1>
+        <p>Een doorzoekbaar archief met transcripties.</p>
+    </header>
+    <div class="container">
+        <div class="episode-list">
+            <h3>Afleveringen</h3>
+            <input type="text" id="search-input" placeholder="Zoek op titel of trefwoord..." onkeyup="filterEpisodes()">
+            <div id="list-container">
+                {% for episode in episodes %}
+                <div class="episode-item" onclick="showEpisode('{{ episode.guid }}')" id="item-{{ episode.guid }}" data-keywords="{{ episode.keywords | join(' ') | lower }} {{ episode.title | lower }}">
+                    <strong>{{ episode.title }}</strong><br>
+                    <small>{{ episode.published }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="episode-detail">
+            <div id="welcome-message">
+                <h2>Welkom</h2>
+                <p>Selecteer een aflevering uit de lijst om de details en transcriptie te bekijken.</p>
+            </div>
+            
+            {% for episode in episodes %}
+            <div id="detail-{{ episode.guid }}" class="episode-content hidden">
+                <h2>{{ episode.title }}</h2>
+                <p><em>{{ episode.published }}</em></p>
+                
+                {% if episode.image_file %}
+                <img src="{{ episode.image_file }}" alt="{{ episode.title }}" class="episode-image">
+                {% endif %}
+                
+                <div class="keywords">
+                    {% for keyword in episode.keywords %}
+                    <span class="keyword-tag">#{{ keyword }}</span>
+                    {% endfor %}
+                </div>
+
+                <p>{{ episode.description | safe }}</p>
+                
+                <audio controls>
+                    <source src="{{ episode.audio_file }}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                
+                <h3>Transcriptie</h3>
+                <div class="transcription">
+                    {{ episode.transcription }}
+                </div>
+                
+                <p><a href="{{ episode.original_link }}" target="_blank">Originele Link</a></p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function filterEpisodes() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const items = document.querySelectorAll('.episode-item');
+            
+            items.forEach(item => {
+                const text = item.getAttribute('data-keywords');
+                if (text.includes(query)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        }
+
+        function showEpisode(guid) {
+            // Hide welcome
+            document.getElementById('welcome-message').classList.add('hidden');
+            
+            // Hide all details
+            const contents = document.querySelectorAll('.episode-content');
+            contents.forEach(el => el.classList.add('hidden'));
+            
+            // Remove active class from list items
+            const items = document.querySelectorAll('.episode-item');
+            items.forEach(el => el.classList.remove('active'));
+            
+            // Show selected detail
+            const selectedDetail = document.getElementById('detail-' + guid);
+            if (selectedDetail) {
+                selectedDetail.classList.remove('hidden');
+            }
+            
+            // Highlight list item
+            const selectedItem = document.getElementById('item-' + guid);
+            if (selectedItem) {
+                selectedItem.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
