@@ -14,9 +14,6 @@ A project to archive, transcribe, and index episodes of the [Echt Gebeurd](https
 
 - **Python 3.8+**
 - **FFmpeg**: Required by `openai-whisper` for audio processing.
-  - *Windows*: `winget install ffmpeg` or download from [ffmpeg.org](https://ffmpeg.org/).
-  - *macOS*: `brew install ffmpeg`
-  - *Linux*: `sudo apt install ffmpeg`
 
 ## Installation
 
