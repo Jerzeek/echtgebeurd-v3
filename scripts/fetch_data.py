@@ -4,9 +4,9 @@ import json
 import os
 import re
 import whisper
-import torch
 from datetime import datetime
 import ssl
+import torch
 
 # Bypass SSL verification for model downloads (fixes self-signed certificate errors)
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -21,8 +21,8 @@ TRANSCRIPTION_DIR = os.path.join(ASSETS_DIR, "transcriptions")
 EPISODES_FILE = os.path.join(DATA_DIR, "episodes.json")
 
 # Limits
-EPISODE_LIMIT = None # Set to None to process all episodes
-TRANSCRIPTION_LIMIT = 5 # Only transcribe the first N episodes
+EPISODE_LIMIT = 10 # Set to None to process all episodes
+TRANSCRIPTION_LIMIT = 10 # Only transcribe the first N episodes
 
 def ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -50,10 +50,13 @@ def download_file(url, filepath):
         print(f"Error downloading {url}: {e}")
 
 def transcribe_audio(model, audio_path):
-    print(f"Transcribing {audio_path}...")
+    start_time = datetime.now()
+    print(f"[{start_time.strftime('%H:%M:%S')}] Transcribing {audio_path}...")
     try:
         # Transcribe
         result = model.transcribe(audio_path, language="nl") # Dutch
+        end_time = datetime.now()
+        print(f"[{end_time.strftime('%H:%M:%S')}] Transcription finished in {end_time - start_time}.")
         return result["text"]
     except Exception as e:
         print(f"Transcription failed: {e}")
@@ -127,10 +130,9 @@ def main():
     
     # Load the model once
     print("Loading transcription model...")
-    # Force CPU to avoid PyTorch MPS backend errors
-    device = "cpu"
-    print("Using CPU for transcription.")
-
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device.upper()} for transcription.")
+    #device = "cpu"
     # Using "medium" for better accuracy, which the M3 can handle well.
     transcription_model = whisper.load_model("medium", device=device)
     

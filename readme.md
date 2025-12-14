@@ -1,14 +1,82 @@
-# Echt gebeurd archive
-I want to make an archive of the Echt Gebeurd podcast.
+# Echt Gebeurd Archive
 
-It is currently difficult to find back specific episodes because the name can be a bit criptic
+A project to archive, transcribe, and index episodes of the [Echt Gebeurd](https://echtgebeurd.net/) podcast. This tool downloads episodes from the RSS feed, generates Dutch transcriptions using OpenAI's Whisper model, and builds a static searchable website.
 
-the idea is to download each episode, transicribe it (Dutch) and create a dutch webpage that shows all of the episodes with keywords from the episode. if you click on the episode you get the audio file as well as the transcribed text.
+## Features
 
-you can get the details from this rss feed: https://www.omnycontent.com/d/playlist/61ee9ca4-a1b2-4660-9651-b2b70035edf5/0c13f220-bf12-49ed-9d47-b2f100f7c60c/c39fca6c-3f36-4b12-a7e8-b2f100f7c61a/podcast.rss
+- **RSS Parsing**: Automatically fetches the latest episodes from the podcast feed.
+- **Audio Transcription**: Uses OpenAI's `whisper` model (medium) to transcribe Dutch audio to text.
+- **Keyword Extraction**: Analyzes transcriptions to extract relevant keywords for better searchability.
+- **Static Site Generation**: Builds a fast, lightweight HTML website to browse and read episodes.
+- **Asset Management**: Downloads and organizes audio, images, and transcription files.
 
-it contains details like title, the image, and the link to the .mp3 file
+## Prerequisites
 
-ideally i would like have a single webpage that can be hosted on github pages
+- **Python 3.8+**
+- **FFmpeg**: Required by `openai-whisper` for audio processing.
+  - *Windows*: `winget install ffmpeg` or download from [ffmpeg.org](https://ffmpeg.org/).
+  - *macOS*: `brew install ffmpeg`
+  - *Linux*: `sudo apt install ffmpeg`
 
-as a bonus it would be great is if the website would have a search option.
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd echtgebeurd-v3
+   ```
+
+2. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   *Note: You may need to install `torch` separately if your system requires a specific version (e.g., for CUDA support).*
+
+## Usage
+
+The workflow consists of two main steps: fetching data and building the website.
+
+### 1. Fetch Data & Transcribe
+
+Run the fetch script to download episodes, transcribe audio, and generate metadata.
+
+```bash
+python scripts/fetch_data.py
+```
+
+*Configuration:*
+You can modify `scripts/fetch_data.py` to change:
+- `EPISODE_LIMIT`: Number of episodes to process (default: 10).
+- `TRANSCRIPTION_LIMIT`: Number of episodes to transcribe (default: 10).
+- `RSS_URL`: The podcast feed URL.
+
+### 2. Build Website
+
+Generate the static HTML site using the fetched data.
+
+```bash
+python scripts/build_site.py
+```
+
+The generated site will be available in the `public/` directory.
+
+### 3. Preview
+
+You can serve the `public` directory locally to preview the site:
+
+```bash
+python -m http.server -d public
+```
+Then open `http://localhost:8000` in your browser.
+
+## Project Structure
+
+- `data/`: Contains `episodes.json` (metadata).
+- `scripts/`: Python scripts for fetching data and building the site.
+- `templates/`: Jinja2 HTML templates.
+- `public/`: The generated static website (ready for deployment).
+- `assets/`: Raw downloaded assets (audio, images, text).
+
+## License
+
+This project is for personal archiving purposes. Content copyright belongs to the original creators of the Echt Gebeurd podcast.

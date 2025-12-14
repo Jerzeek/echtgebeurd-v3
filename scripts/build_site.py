@@ -16,14 +16,14 @@ def main():
         print("No data found. Run fetch_data.py first.")
         return
 
-    with open(EPISODES_FILE, 'r') as f:
+    with open(EPISODES_FILE, 'r', encoding='utf-8') as f:
         episodes = json.load(f)
 
     # Load transcriptions if they are in external files
     for episode in episodes:
         if 'transcription_file' in episode and episode['transcription_file']:
             try:
-                with open(episode['transcription_file'], 'r') as tf:
+                with open(episode['transcription_file'], 'r', encoding='latin-1') as tf:
                     episode['transcription'] = tf.read()
             except FileNotFoundError:
                 print(f"Warning: Transcription file not found: {episode['transcription_file']}")
@@ -41,7 +41,7 @@ def main():
 
     # Write HTML
     output_path = os.path.join(PUBLIC_DIR, "index.html")
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding='utf-8') as f:
         f.write(output)
     print(f"Site generated at {output_path}")
 
