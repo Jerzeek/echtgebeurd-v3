@@ -49,8 +49,8 @@ def main():
     if os.path.exists(ASSETS_SRC):
         if os.path.exists(ASSETS_DEST):
             shutil.rmtree(ASSETS_DEST)
-        shutil.copytree(ASSETS_SRC, ASSETS_DEST)
-        print(f"Assets copied to {ASSETS_DEST}")
+        shutil.copytree(ASSETS_SRC, ASSETS_DEST, ignore=shutil.ignore_patterns('audio'))
+        print(f"Assets copied to {ASSETS_DEST} (excluding audio)")
 
 if __name__ == "__main__":
     main()
