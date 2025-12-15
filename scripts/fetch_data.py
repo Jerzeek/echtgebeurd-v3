@@ -21,8 +21,8 @@ TRANSCRIPTION_DIR = os.path.join(ASSETS_DIR, "transcriptions")
 EPISODES_FILE = os.path.join(DATA_DIR, "episodes.json")
 
 # Limits
-EPISODE_LIMIT = 10 # Set to None to process all episodes
-TRANSCRIPTION_LIMIT = 10 # Only transcribe the first N episodes
+EPISODE_LIMIT = 20 # Set to None to process all episodes
+TRANSCRIPTION_LIMIT = 20 # Only transcribe the first N episodes
 
 def ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
