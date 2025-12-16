@@ -7,6 +7,7 @@ import whisper
 from datetime import datetime
 import ssl
 import torch
+import platform
 
 # Bypass SSL verification for model downloads (fixes self-signed certificate errors)
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -21,8 +22,8 @@ TRANSCRIPTION_DIR = os.path.join(ASSETS_DIR, "transcriptions")
 EPISODES_FILE = os.path.join(DATA_DIR, "episodes.json")
 
 # Limits
-EPISODE_LIMIT = 60 # Set to None to process all episodes
-TRANSCRIPTION_LIMIT = 60 # Only transcribe the first N episodes
+EPISODE_LIMIT = 150 # Set to None to process all episodes
+TRANSCRIPTION_LIMIT = 150 # Only transcribe the first N episodes
 
 def ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -49,12 +50,20 @@ def download_file(url, filepath):
     except Exception as e:
         print(f"Error downloading {url}: {e}")
 
-def transcribe_audio(model, audio_path):
+def transcribe_audio(model, audio_path, use_mlx=False):
     start_time = datetime.now()
     print(f"[{start_time.strftime('%H:%M:%S')}] Transcribing {audio_path}...")
     try:
         # Transcribe
-        result = model.transcribe(audio_path, language="nl") # Dutch
+        if use_mlx:
+            import mlx_whisper
+            result = mlx_whisper.transcribe(
+                audio_path, 
+                path_or_hf_repo=model, 
+                language="nl"
+            )
+        else:
+            result = model.transcribe(audio_path, language="nl") # Dutch
         end_time = datetime.now()
         print(f"[{end_time.strftime('%H:%M:%S')}] Transcription finished in {end_time - start_time}.")
         return result["text"]
@@ -128,13 +137,25 @@ def main():
         print(f"Failed to fetch RSS: {e}")
         return
     
+
     # Load the model once
-    print("Loading transcription model...")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device.upper()} for transcription.")
-    #device = "cpu"
-    # Using "medium" for better accuracy, which the M3 can handle well.
-    transcription_model = whisper.load_model("medium", device=device)
+    use_mlx = False
+    if platform.system() == "Darwin" and platform.machine() == "arm64":
+        try:
+            import mlx_whisper
+            use_mlx = True
+            print("Apple Silicon Mac detected. Using mlx_whisper.")
+        except ImportError:
+            pass
+
+    if use_mlx:
+        transcription_model = "mlx-community/whisper-medium-mlx"
+    else:
+        print("Loading transcription model...")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Using {device.upper()} for transcription.")
+        # Using "medium" for better accuracy, which the M3 can handle well.
+        transcription_model = whisper.load_model("medium", device=device)
     
     episodes = []
     
@@ -235,7 +256,7 @@ def main():
                     # Perform Transcription
                     download_file(audio_url, audio_path)
                     if os.path.exists(audio_path):
-                        transcription = transcribe_audio(transcription_model, audio_path)
+                        transcription = transcribe_audio(transcription_model, audio_path, use_mlx=use_mlx)
                         transcription = trim_transcription(transcription)
                         
                         keywords = extract_keywords(transcription)
