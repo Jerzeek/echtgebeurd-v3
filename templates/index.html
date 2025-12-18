@@ -435,7 +435,9 @@
                         try {
                             const res = await fetch(ep.transcription_file);
                             if (res.ok) {
-                                this.transcriptionText = await res.text();
+                                const buffer = await res.arrayBuffer();
+                                const decoder = new TextDecoder("windows-1252");
+                                this.transcriptionText = decoder.decode(buffer);
                             } else {
                                 this.transcriptionText = "Kon transcriptie niet laden.";
                             }
