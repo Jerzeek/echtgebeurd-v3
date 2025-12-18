@@ -55,14 +55,14 @@ Generate the static HTML site using the fetched data.
 python scripts/build_site.py
 ```
 
-The generated site will be available in the `public/` directory.
+The generated site will be available in the `docs/` directory.
 
 ### 3. Preview
 
-You can serve the `public` directory locally to preview the site:
+You can serve the `docs` directory locally to preview the site:
 
 ```bash
-python -m http.server -d public
+python -m http.server -d docs
 ```
 Then open `http://localhost:8000` in your browser.
 
@@ -71,7 +71,7 @@ Then open `http://localhost:8000` in your browser.
 - `data/`: Contains `episodes.json` (metadata).
 - `scripts/`: Python scripts for fetching data and building the site.
 - `templates/`: Jinja2 HTML templates.
-- `public/`: The generated static website (ready for deployment).
+- `docs/`: The generated static website (ready for deployment).
 - `assets/`: Raw downloaded assets (audio, images, text).
 
 ## License

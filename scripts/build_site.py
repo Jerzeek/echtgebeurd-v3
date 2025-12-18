@@ -8,10 +8,10 @@ BASE_DIR = os.getcwd()
 DATA_DIR = os.path.join(BASE_DIR, "data")
 EPISODES_FILE = os.path.join(DATA_DIR, "episodes.json")
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
-PUBLIC_DIR = os.path.join(BASE_DIR, "public")
+DOCS_DIR = os.path.join(BASE_DIR, "docs")
 ASSETS_SRC = os.path.join(BASE_DIR, "assets")
-ASSETS_DEST = os.path.join(PUBLIC_DIR, "assets")
-DATA_DEST = os.path.join(PUBLIC_DIR, "data")
+ASSETS_DEST = os.path.join(DOCS_DIR, "assets")
+DATA_DEST = os.path.join(DOCS_DIR, "data")
 
 def main():
     print(f"Building site from {BASE_DIR}...")
@@ -94,16 +94,16 @@ def main():
         search_documents.append(search_doc)
 
     # 3. Ensure Output Directories
-    os.makedirs(PUBLIC_DIR, exist_ok=True)
+    os.makedirs(DOCS_DIR, exist_ok=True)
     os.makedirs(DATA_DEST, exist_ok=True)
 
     # 4. Write JSON Data
     
-    # frontend_episodes -> public/data/episodes.json
+    # frontend_episodes -> docs/data/episodes.json
     with open(os.path.join(DATA_DEST, "episodes.json"), 'w', encoding='utf-8') as f:
         json.dump(frontend_episodes, f, ensure_ascii=False, indent=2)
     
-    # search_documents -> public/data/search_index.json
+    # search_documents -> docs/data/search_index.json
     # This might be large, but it's loaded asynchronously
     with open(os.path.join(DATA_DEST, "search_index.json"), 'w', encoding='utf-8') as f:
         json.dump(search_documents, f, ensure_ascii=False)
@@ -118,7 +118,7 @@ def main():
     # The template will fetch the JSONs via JS
     output = template.render() 
 
-    output_path = os.path.join(PUBLIC_DIR, "index.html")
+    output_path = os.path.join(DOCS_DIR, "index.html")
     with open(output_path, "w", encoding='utf-8') as f:
         f.write(output)
     print(f"Site shell generated at {output_path}")
