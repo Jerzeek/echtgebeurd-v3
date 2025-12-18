@@ -382,7 +382,8 @@
                             searchOptions: {
                                 boost: { title: 2, keywords: 1.5 },
                                 fuzzy: false,
-                                prefix: true
+                                prefix: true,
+                                combineWith: 'AND'
                             }
                         });
                         
