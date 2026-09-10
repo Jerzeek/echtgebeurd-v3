@@ -1,0 +1,2 @@
+# Only needed for local transcription (not when using the OpenAI API)
+openai-whisper

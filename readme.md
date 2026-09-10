@@ -26,8 +26,9 @@ A project to archive, transcribe, and index episodes of the [Echt Gebeurd](https
 2. Install Python dependencies:
    ```bash
    pip install -r requirements.txt
+   pip install -r requirements-whisper.txt   # only for local transcription
    ```
-   *Note: You may need to install `torch` separately if your system requires a specific version (e.g., for CUDA support).*
+   *Note: You may need to install `torch` separately if your system requires a specific version (e.g., for CUDA support). On Apple Silicon, `pip install mlx-whisper` gives much faster local transcription.*
 
 ## Usage
 
@@ -73,6 +74,25 @@ The site reads its state from the URL hash, so episodes and searches are linkabl
 - `#thema=Kerst` and `#jaar=2024` apply the theme and year filters
 
 These combine, e.g. `#afl=100&q=gevangenis`.
+
+## Automatic updates on GitHub
+
+The workflow in `.github/workflows/update.yml` runs every Thursday morning (and on demand via *Actions → Update episodes → Run workflow*). It fetches the RSS feed, transcribes new episodes, rebuilds `docs/`, and pushes the result to `main`. GitHub Pages then publishes it from `main:/docs`.
+
+Transcription engine:
+
+- **OpenAI API** (recommended): add a repository secret named `OPENAI_API_KEY`. A run then takes a few minutes and costs roughly €0.10 per episode. Files over 25 MB are shrunk with ffmpeg first.
+- **Local Whisper on the runner** (no key configured): free, but a CPU runner needs roughly 30–60 minutes per episode. On a private repository this counts against the 2,000 free Actions minutes per month.
+
+Each run transcribes at most 3 new episodes (`MAX_NEW_TRANSCRIPTIONS`, adjustable when running manually), so a large backlog is better handled once on your own machine:
+
+```bash
+python scripts/fetch_data.py && python scripts/clean_transcriptions.py && python scripts/build_site.py
+```
+
+Environment variables understood by `scripts/fetch_data.py`: `TRANSCRIBE_ENGINE` (`auto`, `openai`, `local`), `OPENAI_TRANSCRIBE_MODEL` (default `gpt-4o-transcribe`), `WHISPER_MODEL` (default `medium`), `MAX_NEW_TRANSCRIPTIONS`.
+
+`assets/` is not committed. On the runner the fetch script first copies the transcripts already published in `docs/assets/transcriptions/` back into `assets/transcriptions/`, so only genuinely new episodes get transcribed.
 
 ## Project Structure
 

@@ -1,4 +1,3 @@
 feedparser
 requests
 jinja2
-openai-whisper
