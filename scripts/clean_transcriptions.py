@@ -1,6 +1,6 @@
 import os
 
-transcription_dir = 'docs/assets/transcriptions'
+transcription_dir = 'assets/transcriptions'
 target_phrase = "Welkom bij aflevering"
 remove_prefix = "Welkom bij "
 

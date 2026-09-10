@@ -3,452 +3,823 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <title>Echt Gebeurd Archief</title>
-    
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- MiniSearch -->
-    <script src="https://cdn.jsdelivr.net/npm/minisearch@6.1.0/dist/umd/index.min.js"></script>
+    <meta name="description" content="Doorzoek alle 541 afleveringen van de podcast Echt Gebeurd op verteller, thema en de volledige transcriptie.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b8401f'/%3E%3Ctext x='32' y='52' text-anchor='middle' font-family='Georgia,serif' font-size='52' font-weight='700' fill='%23fff4e8'%3E%E2%80%9E%3C/text%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/minisearch@6.3.0/dist/umd/index.min.js"></script>
 
     <style>
-        /* Modern Reset & Base Styles */
         :root {
-            --primary: #2563eb;
-            --text: #1f2937;
-            --bg: #f3f4f6;
-            --white: #ffffff;
-            --border: #e5e7eb;
-            --hover: #f9fafb;
-            --selected: #eff6ff;
+            --bg: #f4efe6;
+            --surface: #fffdf8;
+            --surface-2: #f7f2e9;
+            --ink: #1c1915;
+            --ink-2: #4a443c;
+            --muted: #7a7166;
+            --line: #e6ddcd;
+            --line-strong: #d3c7b3;
+            --accent: #b8401f;
+            --accent-ink: #8f2f14;
+            --accent-soft: #fbe8df;
+            --mark: #ffe28a;
+            --mark-ink: #3d2e00;
+            --shadow: 0 1px 2px rgba(40, 30, 10, .06), 0 10px 28px -14px rgba(40, 30, 10, .25);
+            --serif: "Fraunces", Georgia, "Times New Roman", serif;
+            --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
         }
-        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #14120e;
+                --surface: #1c1915;
+                --surface-2: #242019;
+                --ink: #f2ece2;
+                --ink-2: #cfc6b8;
+                --muted: #978d7e;
+                --line: #2f2a22;
+                --line-strong: #40392e;
+                --accent: #f08a63;
+                --accent-ink: #ffb597;
+                --accent-soft: #3a2418;
+                --mark: #8a6a14;
+                --mark-ink: #fff4cc;
+                --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px -14px rgba(0, 0, 0, .6);
+            }
+        }
+
+        [x-cloak] { display: none !important; }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--sans);
+            font-size: 15px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
+        button { font: inherit; color: inherit; }
+        a { color: var(--accent); }
 
-        /* Layout */
-        header {
-            background-color: #111827;
-            color: var(--white);
-            padding: 1rem 2rem;
-            flex-shrink: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .app { height: 100%; display: flex; flex-direction: column; }
 
-        header h1 { margin: 0; font-size: 1.5rem; }
-        header p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
-
-        .main-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            max-width: 1600px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        /* Sidebar (List) */
-        .sidebar {
-            width: 400px;
-            background: var(--white);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-        }
-
-        .search-box {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-            background: var(--white);
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-        
-        .search-box input:focus {
-            outline: 2px solid var(--primary);
-            border-color: transparent;
-        }
-
-        .episode-list {
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .episode-item {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .episode-item:hover {
-            background-color: var(--hover);
-        }
-
-        .episode-item.active {
-            background-color: var(--selected);
-            border-left: 4px solid var(--primary);
-            padding-left: calc(1rem - 4px);
-        }
-
-        .episode-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            display: block;
-        }
-
-        .episode-meta {
-            font-size: 0.85rem;
-            color: #6b7280;
-        }
-
-        /* Detail View */
-        .detail-view {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem;
-            background: var(--white);
-            position: relative;
-        }
-
-        .empty-state {
+        /* ---------- Top bar ---------- */
+        .topbar {
             display: flex;
             align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #9ca3af;
-            font-size: 1.2rem;
-            text-align: center;
+            gap: 20px;
+            padding: 12px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            flex-shrink: 0;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; white-space: nowrap; }
+        .brand-mark { width: 38px; height: 38px; flex-shrink: 0; display: block; }
+        .brand-name { font-family: var(--serif); font-weight: 700; font-size: 20px; line-height: 1.1; letter-spacing: -.01em; }
+        .brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+        .search {
+            flex: 1; max-width: 680px; position: relative;
+        }
+        .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+        .search input {
+            width: 100%;
+            padding: 11px 44px 11px 42px;
+            border: 1px solid var(--line-strong);
+            border-radius: 999px;
+            background: var(--bg);
+            color: var(--ink);
+            font: inherit; font-size: 15px;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s, background .15s;
+        }
+        .search input::placeholder { color: var(--muted); }
+        .search input:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 4px var(--accent-soft); }
+        .search .kbd, .search .clear {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        }
+        .kbd {
+            font-size: 11px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 6px;
+            padding: 2px 7px; background: var(--surface); font-family: var(--sans);
+        }
+        .clear {
+            border: 0; background: var(--line); color: var(--ink-2); width: 26px; height: 26px; border-radius: 50%;
+            cursor: pointer; display: grid; place-items: center; font-size: 14px; line-height: 1;
+        }
+        .clear:hover { background: var(--line-strong); }
+
+        .status { margin-left: auto; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+        .status .dot.ready { background: #3f9d5a; }
+        .status .dot.error { background: var(--accent); }
+
+        .spinner {
+            width: 14px; height: 14px; border-radius: 50%;
+            border: 2px solid var(--line-strong); border-top-color: var(--accent);
+            animation: spin .8s linear infinite; display: inline-block; flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---------- Shell ---------- */
+        .shell {
+            flex: 1; min-height: 0;
+            display: grid; grid-template-columns: 420px minmax(0, 1fr);
+            width: 100%; max-width: 1480px; margin: 0 auto;
+            background: var(--surface);
+            border-left: 1px solid var(--line); border-right: 1px solid var(--line);
         }
 
-        .content-width {
-            max-width: 800px;
-            margin: 0 auto;
+        /* ---------- List pane ---------- */
+        .list-pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--surface); }
+        .filters {
+            display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+            padding: 12px 14px; border-bottom: 1px solid var(--line);
+        }
+        .select-wrap { position: relative; }
+        .select-wrap select {
+            appearance: none; -webkit-appearance: none;
+            font: inherit; font-size: 13px; font-weight: 500; color: var(--ink-2);
+            background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px;
+            padding: 6px 28px 6px 12px; cursor: pointer; max-width: 150px;
+            text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+        }
+        .select-wrap::after {
+            content: ""; position: absolute; right: 11px; top: 50%; width: 7px; height: 7px;
+            border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+            transform: translateY(-70%) rotate(45deg); pointer-events: none;
+        }
+        .select-wrap select.on { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+        .select-wrap select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .link-btn { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 13px; padding: 4px 6px; border-radius: 6px; }
+        .link-btn:hover { background: var(--accent-soft); }
+
+        .count { padding: 8px 18px 6px; font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
+        .count b { color: var(--ink-2); font-weight: 600; }
+        .count .warn { color: var(--accent-ink); }
+
+        .list { flex: 1; overflow-y: auto; padding: 6px 8px 40px; scroll-padding: 8px; }
+        .card {
+            display: grid; gap: 3px;
+            padding: 12px 14px; margin: 2px 0; border-radius: 10px;
+            cursor: pointer; border: 1px solid transparent;
+            transition: background .12s;
+        }
+        .card:hover { background: var(--surface-2); }
+        .card:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .card.active { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
+        .card-top { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+        .card-top .theme { color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .card-top .num { color: var(--muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+        .card .name { font-family: var(--serif); font-size: 17px; font-weight: 600; line-height: 1.25; letter-spacing: -.005em; }
+        .card .date { font-size: 12.5px; color: var(--muted); }
+        .card .snippet { font-size: 13px; color: var(--ink-2); line-height: 1.45; margin-top: 4px; }
+        .empty-list { padding: 40px 24px; text-align: center; color: var(--muted); }
+        .empty-list p { margin: 6px 0; }
+
+        mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 1px; }
+        mark.current { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+        /* ---------- Detail pane ---------- */
+        .detail-pane { overflow-y: auto; min-height: 0; padding: 36px 48px 96px; background: var(--surface); position: relative; }
+        .article { max-width: 740px; margin: 0 auto; }
+
+        .back {
+            display: none; align-items: center; gap: 6px;
+            border: 0; background: none; color: var(--accent); font-weight: 500; cursor: pointer; padding: 0; margin-bottom: 18px;
         }
 
-        .detail-header {
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1rem;
+        .eyebrow { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+        .theme-chip {
+            border: 0; background: var(--accent-soft); color: var(--accent-ink); border-radius: 999px;
+            padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
         }
+        .theme-chip:hover { background: var(--accent); color: #fff4e8; }
 
-        .detail-title {
-            font-size: 2rem;
-            margin: 0 0 0.5rem 0;
-            color: #111827;
+        .hero { display: flex; gap: 22px; align-items: flex-start; }
+        .hero img { width: 116px; height: 116px; border-radius: 12px; object-fit: cover; box-shadow: var(--shadow); flex-shrink: 0; background: var(--surface-2); }
+        h1.title { font-family: var(--serif); font-size: 36px; font-weight: 700; line-height: 1.08; letter-spacing: -.015em; margin: 4px 0 10px; }
+        .meta { color: var(--muted); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2);
+            border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none;
         }
+        .btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+        .btn svg { width: 14px; height: 14px; }
 
-        .detail-meta {
-            color: #6b7280;
-            margin-bottom: 1rem;
-        }
+        audio { width: 100%; margin: 24px 0 8px; border-radius: 999px; }
 
+        .desc { font-size: 16.5px; line-height: 1.6; color: var(--ink-2); margin-top: 16px; }
+        .desc p { margin: 0 0 .8em; }
+        .desc a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+        .desc a:hover { border-bottom-color: var(--accent); }
+
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
         .tag {
-            display: inline-block;
-            background-color: #e5e7eb;
-            color: #374151;
-            padding: 0.25rem 0.6rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            margin-right: 0.5rem;
-            margin-top: 0.5rem;
+            border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink-2);
+            border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer;
         }
+        .tag:hover { border-color: var(--accent); color: var(--accent-ink); }
 
-        .audio-player {
-            width: 100%;
-            margin: 1.5rem 0;
+        .transcript-head {
+            position: sticky; top: -36px; z-index: 2;
+            margin-top: 44px; padding: 14px 0 10px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
         }
-
-        .transcription-box {
-            background: #f9fafb;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--border);
-            white-space: pre-wrap;
-            line-height: 1.7;
-            font-family: Georgia, serif;
-            color: #374151;
-            margin-top: 2rem;
+        .transcript-head h2 { font-family: var(--serif); font-size: 22px; font-weight: 700; margin: 0; }
+        .transcript-head .sub { font-size: 12.5px; color: var(--muted); margin-left: 10px; font-family: var(--sans); font-weight: 400; }
+        .matchnav { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-2); }
+        .matchnav button {
+            width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer;
+            display: grid; place-items: center;
         }
+        .matchnav button:hover { border-color: var(--accent); color: var(--accent-ink); }
+        .matchnav .n { padding: 0 8px; font-variant-numeric: tabular-nums; min-width: 84px; text-align: center; }
 
-        .description {
-            line-height: 1.6;
-            color: #4b5563;
+        .transcript { margin-top: 22px; }
+        .transcript p {
+            font-family: var(--serif); font-size: 18.5px; line-height: 1.65; color: var(--ink);
+            margin: 0 0 1.15em; font-variation-settings: "opsz" 14;
         }
-        
-        .description a { color: var(--primary); text-decoration: none; }
-        .description a:hover { text-decoration: underline; }
-
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-left: 10px;
+        .transcript p:first-of-type::first-letter {
+            font-size: 3.4em; float: left; line-height: .82; padding: 6px 8px 0 0; font-weight: 700; color: var(--accent);
         }
+        .transcript-note { padding: 28px 0; color: var(--muted); font-style: italic; display: flex; gap: 10px; align-items: center; }
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* ---------- Welcome / empty ---------- */
+        .welcome { max-width: 620px; margin: 8vh auto 0; }
+        .welcome .big { font-family: var(--serif); font-size: 44px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; margin: 0 0 16px; }
+        .welcome .big em { font-style: italic; font-weight: 400; color: var(--accent); }
+        .welcome p { font-size: 16.5px; color: var(--ink-2); margin: 0 0 22px; }
+        .welcome h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 28px 0 10px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 7px 14px;
+            font-size: 13.5px; cursor: pointer; color: var(--ink-2);
+        }
+        .chip:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+        .chip small { color: var(--muted); margin-left: 4px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 6px; }
+        .stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+        .stat b { display: block; font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+        .stat span { font-size: 12.5px; color: var(--muted); }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-container { flex-direction: column; }
-            .sidebar { width: 100%; height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
-            .detail-view { height: 60vh; }
+        /* ---------- Responsive ---------- */
+        @media (max-width: 1000px) {
+            .shell { grid-template-columns: 360px minmax(0, 1fr); }
+            .detail-pane { padding: 28px 28px 80px; }
+        }
+        @media (max-width: 760px) {
+            .topbar { flex-wrap: wrap; gap: 10px 14px; padding: 10px 14px; }
+            .brand-sub { display: none; }
+            .search { order: 3; flex-basis: 100%; max-width: none; }
+            .search .kbd { display: none; }
+            .status { display: none; }
+            .shell { grid-template-columns: 1fr; border: 0; }
+            .list-pane { border-right: 0; }
+            .shell.has-selection .list-pane { display: none; }
+            .shell:not(.has-selection) .detail-pane { display: none; }
+            .detail-pane { padding: 18px 18px 80px; }
+            .back { display: inline-flex; }
+            h1.title { font-size: 28px; }
+            .hero img { width: 84px; height: 84px; }
+            .transcript p { font-size: 17.5px; }
+            .transcript-head { top: -18px; }
+            .stats { grid-template-columns: 1fr 1fr; }
+            .welcome { margin-top: 2vh; }
+            .welcome .big { font-size: 34px; }
         }
     </style>
 </head>
 <body>
 
-    <div x-data="app()" x-init="initApp()" style="height: 100%; display: flex; flex-direction: column;">
-        
-        <header>
+<div class="app" x-data="app()" x-init="init()" x-cloak>
+
+    <header class="topbar">
+        <a class="brand" href="#" @click.prevent="showList()">
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><text x="32" y="52" text-anchor="middle" font-family="Fraunces, Georgia, serif" font-size="52" font-weight="700" fill="#fff4e8">„</text></svg>
             <div>
-                <h1>Echt Gebeurd Archief</h1>
-                <p>Doorzoekbare transcripties en audio</p>
+                <div class="brand-name">Echt Gebeurd Archief</div>
+                <div class="brand-sub">Alle verhalen, doorzoekbaar op tekst</div>
             </div>
-            <div x-show="isLoadingIndex" style="display: flex; align-items: center; font-size: 0.8rem;">
-                Index laden... <div class="loading-spinner"></div>
-            </div>
-        </header>
+        </a>
 
-        <div class="main-container">
-            <!-- Sidebar -->
-            <div class="sidebar">
-                <div class="search-box">
-                    <input 
-                        type="text" 
-                        x-model="searchQuery" 
-                        @input.debounce.300ms="performSearch()" 
-                        @focus="loadSearchIndex()"
-                        placeholder="Zoek in titels, tekst & keywords..."
-                    >
-                    <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.5rem; display: flex; justify-content: space-between;">
-                        <span x-text="filteredEpisodes.length + ' afleveringen'"></span>
-                        <span x-show="searchQuery.length > 0 && !miniSearch" style="color: orange;">(Alleen titels doorzoeken...)</span>
-                    </div>
-                </div>
-                
-                <div class="episode-list">
-                    <template x-for="ep in filteredEpisodes" :key="ep.guid">
-                        <div 
-                            class="episode-item" 
-                            :class="{ 'active': selectedEpisode && selectedEpisode.guid === ep.guid }"
-                            @click="selectEpisode(ep)"
-                        >
-                            <span class="episode-title" x-text="ep.title"></span>
-                            <div class="episode-meta">
-                                <span x-text="formatDate(ep.published)"></span>
-                            </div>
-                        </div>
-                    </template>
-                    
-                    <div x-show="filteredEpisodes.length === 0" style="padding: 2rem; text-align: center; color: #9ca3af;">
-                        Geen resultaten gevonden.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Detail View -->
-            <div class="detail-view">
-                <template x-if="!selectedEpisode">
-                    <div class="empty-state">
-                        <div>
-                            <p>Selecteer een aflevering om te beginnen.</p>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="selectedEpisode">
-                    <div class="content-width">
-                        <div class="detail-header">
-                            <h2 class="detail-title" x-text="selectedEpisode.title"></h2>
-                            <div class="detail-meta">
-                                Gepubliceerd op <span x-text="formatDate(selectedEpisode.published)"></span>
-                            </div>
-                            
-                            <!-- Keywords -->
-                            <div>
-                                <template x-for="kw in selectedEpisode.keywords" :key="kw">
-                                    <span class="tag" x-text="'#' + kw"></span>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Image -->
-                        <template x-if="selectedEpisode.image_file">
-                            <img :src="selectedEpisode.image_file" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 1.5rem;" alt="Aflevering afbeelding">
-                        </template>
-
-                        <!-- Audio -->
-                        <audio class="audio-player" controls :src="selectedEpisode.audio_file" x-ref="audioPlayer"></audio>
-
-                        <!-- Description -->
-                        <div class="description" x-html="selectedEpisode.description"></div>
-
-                        <div style="margin-top: 1rem;">
-                            <a :href="selectedEpisode.original_link" target="_blank" style="color: var(--primary);">Bekijk origineel</a>
-                        </div>
-
-                        <!-- Transcription -->
-                        <div style="margin-top: 3rem;">
-                            <h3 style="border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">Transcriptie</h3>
-                            
-                            <div x-show="isLoadingTranscript" style="padding: 2rem; text-align: center; color: #6b7280;">
-                                Transcriptie laden... <div class="loading-spinner"></div>
-                            </div>
-
-                            <div x-show="!isLoadingTranscript && transcriptionText" class="transcription-box" x-text="transcriptionText"></div>
-                            
-                            <div x-show="!isLoadingTranscript && !transcriptionText" style="padding: 1rem; color: #9ca3af; font-style: italic;">
-                                Geen transcriptie beschikbaar.
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </div>
+        <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input
+                type="search"
+                x-ref="search"
+                x-model="q"
+                @input.debounce.200ms="onQuery()"
+                @focus="loadIndex()"
+                placeholder="Zoek een verteller, thema of iets uit een verhaal…"
+                autocomplete="off"
+                aria-label="Zoeken"
+            >
+            <span class="kbd" x-show="!q">/</span>
+            <button class="clear" x-show="q" @click="q=''; onQuery(); $refs.search.focus()" aria-label="Zoekopdracht wissen">×</button>
         </div>
 
+        <div class="status">
+            <template x-if="indexState === 'loading'"><span class="spinner"></span></template>
+            <template x-if="indexState !== 'loading'"><span class="dot" :class="indexState"></span></template>
+            <span x-text="statusText()"></span>
+        </div>
+    </header>
+
+    <div class="shell" :class="{ 'has-selection': selected }">
+
+        <!-- ================= List ================= -->
+        <aside class="list-pane">
+            <div class="filters">
+                <div class="select-wrap">
+                    <select x-model="theme" @change="apply()" :class="{ on: theme }" aria-label="Thema">
+                        <option value="">Alle thema's</option>
+                        <template x-for="t in themes" :key="t.name">
+                            <option :value="t.name" x-text="t.name + ' (' + t.count + ')'"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="select-wrap">
+                    <select x-model="year" @change="apply()" :class="{ on: year }" aria-label="Jaar">
+                        <option value="">Alle jaren</option>
+                        <template x-for="y in years" :key="y">
+                            <option :value="y" x-text="y"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="select-wrap">
+                    <select x-model="sort" @change="apply()" aria-label="Sortering">
+                        <option value="relevance" x-show="q">Relevantie</option>
+                        <option value="new">Nieuwste eerst</option>
+                        <option value="old">Oudste eerst</option>
+                    </select>
+                </div>
+                <button class="link-btn" x-show="theme || year || q" @click="resetFilters()">Wis</button>
+            </div>
+
+            <div class="count">
+                <span x-html="countText()"></span>
+                <span class="warn" x-show="q && indexState !== 'ready'">alleen titels</span>
+            </div>
+
+            <div class="list" x-ref="list">
+                <template x-for="ep in results" :key="ep.guid">
+                    <div
+                        class="card"
+                        :class="{ active: selected && selected.guid === ep.guid }"
+                        role="button" tabindex="0"
+                        @click="select(ep)"
+                        @keydown.enter.prevent="select(ep)"
+                    >
+                        <div class="card-top">
+                            <span class="theme" x-text="ep.theme || kindLabel(ep)"></span>
+                            <span class="num" x-text="ep.number ? '#' + ep.number : (ep.theme ? kindLabel(ep) : '')"></span>
+                        </div>
+                        <div class="name" x-text="ep.storyteller || ep.title"></div>
+                        <div class="date" x-text="fmtDate(ep.published)"></div>
+                        <div class="snippet" x-show="ep._snippet" x-html="ep._snippet"></div>
+                    </div>
+                </template>
+
+                <div class="empty-list" x-show="results.length === 0">
+                    <p><strong>Niets gevonden.</strong></p>
+                    <p x-show="q && indexState !== 'ready'">De volledige tekst wordt nog geladen…</p>
+                    <p x-show="theme || year">Probeer het zonder filters.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ================= Detail ================= -->
+        <main class="detail-pane" x-ref="detail">
+
+            <template x-if="!selected">
+                <div class="welcome">
+                    <h1 class="big">Zoek een verhaal <em>dat je ooit hoorde</em></h1>
+                    <p>
+                        Alle afleveringen van de podcast <a href="https://echtgebeurd.net/" target="_blank" rel="noopener">Echt Gebeurd</a>
+                        zijn hier uitgeschreven. Zoek op een naam, een thema of een zin die je is bijgebleven, en luister het verhaal terug.
+                    </p>
+                    <div class="stats">
+                        <div class="stat"><b x-text="all.length"></b><span>afleveringen</span></div>
+                        <div class="stat"><b x-text="themes.length"></b><span>thema's</span></div>
+                        <div class="stat"><b x-text="yearRange()"></b><span>jaren aan verhalen</span></div>
+                    </div>
+                    <h3>Veelgebruikte thema's</h3>
+                    <div class="chips">
+                        <template x-for="t in topThemes()" :key="t.name">
+                            <button class="chip" @click="theme = t.name; apply()"><span x-text="t.name"></span><small x-text="t.count"></small></button>
+                        </template>
+                    </div>
+                    <h3>Tip</h3>
+                    <p style="font-size: 14px;">Druk op <span class="kbd">/</span> om meteen te zoeken. Gevonden woorden worden in de transcriptie gemarkeerd en je springt er met de pijltjes doorheen.</p>
+                </div>
+            </template>
+
+            <template x-if="selected">
+                <article class="article">
+                    <button class="back" @click="showList()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                        Terug naar overzicht
+                    </button>
+
+                    <div class="eyebrow">
+                        <template x-if="selected.theme">
+                            <button class="theme-chip" @click="theme = selected.theme; apply()" x-text="selected.theme" title="Alle verhalen met dit thema"></button>
+                        </template>
+                        <span x-text="selected.number ? 'Aflevering ' + selected.number : kindLabel(selected)"></span>
+                    </div>
+
+                    <div class="hero">
+                        <template x-if="selected.image_file">
+                            <img :src="selected.image_file" :alt="'Afbeelding bij ' + selected.title" loading="lazy">
+                        </template>
+                        <div>
+                            <h1 class="title" x-text="selected.storyteller || selected.title"></h1>
+                            <div class="meta">
+                                <span x-text="fmtDate(selected.published)"></span>
+                                <span x-show="selected.words" x-text="'± ' + readMinutes(selected.words) + ' min lezen'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <audio controls preload="none" :src="selected.audio_file" x-ref="audio"></audio>
+
+                    <div class="actions">
+                        <button class="btn" @click="copyLink()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>
+                            <span x-text="copied ? 'Link gekopieerd' : 'Kopieer link'"></span>
+                        </button>
+                        <a class="btn" :href="selected.original_link" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+                            Origineel
+                        </a>
+                    </div>
+
+                    <div class="desc" x-show="selected.description" x-html="selected.description"></div>
+
+                    <div class="tags" x-show="selected.keywords && selected.keywords.length">
+                        <template x-for="kw in selected.keywords" :key="kw">
+                            <button class="tag" @click="searchFor(kw)" x-text="kw" title="Zoek op dit woord"></button>
+                        </template>
+                    </div>
+
+                    <div class="transcript-head">
+                        <h2>Transcriptie <span class="sub" x-show="selected.words" x-text="selected.words.toLocaleString('nl-NL') + ' woorden'"></span></h2>
+                        <div class="matchnav" x-show="q && transcriptState === 'ready'">
+                            <button @click="step(-1)" aria-label="Vorige treffer">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                            </button>
+                            <span class="n" x-text="matchCount ? (matchPos + 1) + ' van ' + matchCount : 'geen treffers'"></span>
+                            <button @click="step(1)" aria-label="Volgende treffer">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="transcript-note" x-show="transcriptState === 'loading'"><span class="spinner"></span> Transcriptie laden…</div>
+                    <div class="transcript-note" x-show="transcriptState === 'none'">Voor deze aflevering is geen transcriptie beschikbaar.</div>
+                    <div class="transcript-note" x-show="transcriptState === 'error'">De transcriptie kon niet worden geladen.</div>
+
+                    <div class="transcript" x-show="transcriptState === 'ready'" x-ref="transcript">
+                        <template x-for="(p, i) in renderedParagraphs()" :key="selected.guid + '-' + i">
+                            <p x-html="p"></p>
+                        </template>
+                    </div>
+                </article>
+            </template>
+        </main>
     </div>
+</div>
 
-    <script>
-        function app() {
-            return {
-                allEpisodes: [],
-                filteredEpisodes: [],
-                selectedEpisode: null,
-                searchQuery: '',
-                transcriptionText: '',
-                
-                // State flags
-                isLoadingIndex: false,
-                isIndexLoaded: false,
-                isLoadingTranscript: false,
-                
-                // Search Engine
-                miniSearch: null,
+<script>
+function app() {
+    return {
+        all: [],
+        results: [],
+        selected: null,
+        q: '',
+        theme: '',
+        year: '',
+        sort: 'relevance',
+        themes: [],
+        years: [],
 
-                async initApp() {
-                    // 1. Fetch lightweight metadata
-                    try {
-                        const res = await fetch('data/episodes.json');
-                        this.allEpisodes = await res.json();
-                        this.filteredEpisodes = this.allEpisodes;
-                    } catch (e) {
-                        console.error("Failed to load episodes", e);
-                    }
-                },
+        index: null,
+        indexState: 'idle',   // idle | loading | ready | error
+        texts: new Map(),
 
-                formatDate(dateStr) {
-                    if (!dateStr) return '';
-                    // Simple parse, assume standard format or just return part of it
-                    // "Thu, 11 Dec 2025 05:30:00 +0000" -> "11 Dec 2025"
-                    const date = new Date(dateStr);
-                    return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
-                },
+        paragraphs: [],
+        transcriptState: 'idle', // idle | loading | ready | none | error
+        matchCount: 0,
+        matchPos: 0,
+        copied: false,
 
-                async loadSearchIndex() {
-                    if (this.isIndexLoaded || this.isLoadingIndex) return;
-                    
-                    this.isLoadingIndex = true;
-                    try {
-                        const res = await fetch('data/search_index.json');
-                        const docs = await res.json();
-                        
-                        // Initialize MiniSearch
-                        this.miniSearch = new MiniSearch({
-                            fields: ['title', 'txt', 'keywords', 'desc'], // fields to index for full-text search
-                            storeFields: ['id'], // fields to return with search results
-                            searchOptions: {
-                                boost: { title: 2, keywords: 1.5 },
-                                fuzzy: false,
-                                prefix: true,
-                                combineWith: 'AND'
-                            }
-                        });
-                        
-                        this.miniSearch.addAll(docs);
-                        this.isIndexLoaded = true;
-                        console.log("Search index loaded.");
-                        
-                        // Re-run search if query exists
-                        if (this.searchQuery) {
-                            this.performSearch();
-                        }
-                    } catch (e) {
-                        console.error("Failed to load search index", e);
-                    } finally {
-                        this.isLoadingIndex = false;
-                    }
-                },
+        // ---------- lifecycle ----------
+        async init() {
+            try {
+                const res = await fetch('data/episodes.json?v=73b4cbe844');
+                this.all = await res.json();
+            } catch (e) {
+                console.error('Kon afleveringen niet laden', e);
+                return;
+            }
+            const themeCount = new Map();
+            for (const ep of this.all) {
+                ep.year = ep.published ? new Date(ep.published).getFullYear() : null;
+                ep.ts = ep.published ? Date.parse(ep.published) : 0;
+                if (ep.theme) themeCount.set(ep.theme, (themeCount.get(ep.theme) || 0) + 1);
+            }
+            this.themes = [...themeCount.entries()]
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+            this.years = [...new Set(this.all.map(e => e.year).filter(Boolean))].sort((a, b) => b - a);
 
-                performSearch() {
-                    if (!this.searchQuery.trim()) {
-                        this.filteredEpisodes = this.allEpisodes;
-                        return;
-                    }
+            this.readHash();
+            this.apply();
+            window.addEventListener('hashchange', () => { this.readHash(); this.apply(); });
 
-                    if (this.miniSearch && this.isIndexLoaded) {
-                        // Use MiniSearch
-                        const results = this.miniSearch.search(this.searchQuery);
-                        const ids = new Set(results.map(r => r.id));
-                        this.filteredEpisodes = this.allEpisodes.filter(ep => ids.has(ep.guid));
-                    } else {
-                        // Fallback: Simple Title/Keyword filter
-                        const q = this.searchQuery.toLowerCase();
-                        this.filteredEpisodes = this.allEpisodes.filter(ep => {
-                            return (ep.title && ep.title.toLowerCase().includes(q)) ||
-                                   (ep.keywords && ep.keywords.some(k => k.toLowerCase().includes(q)));
-                        });
-                    }
-                },
+            window.addEventListener('keydown', (e) => {
+                const typing = /^(input|textarea|select)$/i.test(document.activeElement?.tagName || '');
+                if (e.key === '/' && !typing) { e.preventDefault(); this.$refs.search.focus(); this.$refs.search.select(); }
+                if (e.key === 'Escape' && document.activeElement === this.$refs.search) { this.q = ''; this.onQuery(); }
+            });
 
-                async selectEpisode(ep) {
-                    this.selectedEpisode = ep;
-                    this.transcriptionText = ''; // clear previous
-                    
-                    // Stop audio if playing (optional, handled by browser usually but good UX)
-                    const player = this.$refs.audioPlayer;
-                    if (player) { player.pause(); player.currentTime = 0; }
+            if (this.q) this.loadIndex();
+            // Fetch the full-text index quietly once the page is idle, unless the visitor asked to save data.
+            if (!navigator.connection?.saveData) {
+                const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 2500));
+                idle(() => this.loadIndex());
+            }
+        },
 
-                    if (ep.transcription_file) {
-                        this.isLoadingTranscript = true;
-                        try {
-                            const res = await fetch(ep.transcription_file);
-                            if (res.ok) {
-                                this.transcriptionText = await res.text();
-                            } else {
-                                this.transcriptionText = "Kon transcriptie niet laden.";
-                            }
-                        } catch (e) {
-                            this.transcriptionText = "Fout bij laden transcriptie.";
-                        } finally {
-                            this.isLoadingTranscript = false;
-                        }
-                    }
+        // ---------- url state ----------
+        readHash() {
+            const params = new URLSearchParams(location.hash.replace(/^#\/?/, ''));
+            this.q = params.get('q') || '';
+            this.theme = params.get('thema') || '';
+            this.year = params.get('jaar') || '';
+            const afl = params.get('afl');
+            const ep = params.get('ep');
+            let target = null;
+            if (afl) target = this.all.find(e => String(e.number) === afl);
+            if (!target && ep) target = this.all.find(e => e.guid === ep);
+            if (target && (!this.selected || this.selected.guid !== target.guid)) this.select(target, false);
+            if (!target && this.selected) { this.selected = null; document.title = 'Echt Gebeurd Archief'; }
+        },
+        writeHash(push) {
+            const params = new URLSearchParams();
+            if (this.selected) {
+                if (this.selected.number) params.set('afl', this.selected.number);
+                else params.set('ep', this.selected.guid);
+            }
+            if (this.q.trim()) params.set('q', this.q.trim());
+            if (this.theme) params.set('thema', this.theme);
+            if (this.year) params.set('jaar', this.year);
+            const hash = params.toString() ? '#' + params.toString() : location.pathname + location.search;
+            if (push) history.pushState(null, '', hash);
+            else history.replaceState(null, '', hash);
+        },
+
+        // ---------- search ----------
+        async loadIndex() {
+            if (this.indexState !== 'idle') return;
+            this.indexState = 'loading';
+            try {
+                const res = await fetch('data/search_index.json?v=73b4cbe844');
+                const docs = await res.json();
+                const index = new MiniSearch({
+                    fields: ['title', 'who', 'theme', 'txt', 'keywords', 'desc'],
+                    storeFields: ['id'],
+                    searchOptions: {
+                        boost: { title: 3, who: 3, theme: 2, keywords: 1.5 },
+                        prefix: true,
+                        fuzzy: false,
+                        combineWith: 'AND',
+                    },
+                });
+                index.addAll(docs);
+                for (const d of docs) this.texts.set(d.id, d.txt || '');
+                this.index = index;
+                this.indexState = 'ready';
+                if (this.q) { this.apply(); this.$nextTick(() => this.refreshMatches(true)); }
+            } catch (e) {
+                console.error('Zoekindex kon niet laden', e);
+                this.indexState = 'error';
+            }
+        },
+
+        onQuery() {
+            if (this.q.trim()) this.loadIndex();
+            this.apply();
+            this.writeHash(false);
+            this.$nextTick(() => this.refreshMatches(true));
+        },
+
+        terms() {
+            return this.q.trim().toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+        },
+        termRegex() {
+            const terms = this.terms();
+            if (!terms.length) return null;
+            const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            return new RegExp('(?<![\\p{L}\\p{N}])(' + escaped.join('|') + ')', 'giu');
+        },
+
+        apply() {
+            let list = this.all;
+            if (this.theme) list = list.filter(e => e.theme === this.theme);
+            if (this.year) list = list.filter(e => String(e.year) === String(this.year));
+
+            const q = this.q.trim();
+            let order = null;
+            if (q) {
+                if (this.index) {
+                    const hits = this.index.search(q);
+                    order = new Map(hits.map((h, i) => [h.id, i]));
+                    list = list.filter(e => order.has(e.guid));
+                } else {
+                    const lq = q.toLowerCase();
+                    list = list.filter(e =>
+                        (e.title || '').toLowerCase().includes(lq) ||
+                        (e.keywords || []).some(k => k.includes(lq))
+                    );
                 }
             }
-        }
-    </script>
+
+            list = [...list];
+            if (this.sort === 'old') list.sort((a, b) => a.ts - b.ts);
+            else if (this.sort === 'relevance' && order) list.sort((a, b) => order.get(a.guid) - order.get(b.guid));
+            else list.sort((a, b) => b.ts - a.ts);
+
+            const re = q && this.index ? this.termRegex() : null;
+            for (const ep of list) ep._snippet = re ? this.snippet(ep, re) : '';
+            this.results = list;
+            if (this.$refs.list) this.$refs.list.scrollTop = 0;
+        },
+
+        snippet(ep, re) {
+            const text = this.texts.get(ep.guid) || '';
+            re.lastIndex = 0;
+            const m = re.exec(text);
+            if (!m) return '';
+            const start = Math.max(0, m.index - 70);
+            const end = Math.min(text.length, m.index + 150);
+            let slice = text.slice(start, end);
+            if (start > 0) slice = slice.replace(/^\S*\s/, '');
+            if (end < text.length) slice = slice.replace(/\s\S*$/, '');
+            return (start > 0 ? '… ' : '') + this.highlight(slice, re) + (end < text.length ? ' …' : '');
+        },
+
+        highlight(text, re) {
+            const safe = this.escape(text);
+            if (!re) return safe;
+            re.lastIndex = 0;
+            return safe.replace(re, '<mark>$1</mark>');
+        },
+        escape(s) {
+            return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        },
+
+        searchFor(term) {
+            this.q = term;
+            this.onQuery();
+            this.$refs.search.focus();
+        },
+        resetFilters() {
+            this.q = ''; this.theme = ''; this.year = '';
+            this.apply();
+            this.writeHash(false);
+        },
+
+        // ---------- selection ----------
+        async select(ep, push = true) {
+            if (this.selected && this.selected.guid === ep.guid) { if (push) this.writeHash(false); return; }
+            this.selected = ep;
+            this.paragraphs = [];
+            this.matchCount = 0;
+            this.matchPos = 0;
+            this.copied = false;
+            document.title = (ep.title || 'Aflevering') + ' · Echt Gebeurd Archief';
+            if (push) this.writeHash(true);
+            this.$nextTick(() => { if (this.$refs.detail) this.$refs.detail.scrollTop = 0; });
+
+            if (!ep.transcription_file) { this.transcriptState = 'none'; return; }
+            this.transcriptState = 'loading';
+            try {
+                const res = await fetch(ep.transcription_file);
+                if (!res.ok) throw new Error(res.status);
+                const text = await res.text();
+                if (this.selected !== ep) return; // user moved on
+                this.paragraphs = this.splitParagraphs(text);
+                this.transcriptState = 'ready';
+                this.$nextTick(() => this.refreshMatches(true));
+            } catch (e) {
+                if (this.selected === ep) this.transcriptState = 'error';
+            }
+        },
+        showList() {
+            this.selected = null;
+            document.title = 'Echt Gebeurd Archief';
+            this.writeHash(true);
+        },
+
+        splitParagraphs(text) {
+            const sentences = text.replace(/\s+/g, ' ').trim().split(/(?<=[.!?…])\s+(?=[A-ZÀ-Ý„"'‘“(])/);
+            const out = [];
+            let buf = '';
+            for (const s of sentences) {
+                buf += (buf ? ' ' : '') + s;
+                if (buf.length > 520) { out.push(buf); buf = ''; }
+            }
+            if (buf) out.push(buf);
+            return out;
+        },
+        renderedParagraphs() {
+            const re = this.termRegex();
+            return this.paragraphs.map(p => this.highlight(p, re));
+        },
+
+        // ---------- match navigation ----------
+        marks() {
+            return this.$refs.transcript ? [...this.$refs.transcript.querySelectorAll('mark')] : [];
+        },
+        refreshMatches(jump) {
+            const marks = this.marks();
+            this.matchCount = marks.length;
+            this.matchPos = 0;
+            if (marks.length && jump) this.goTo(0, 'auto');
+        },
+        step(dir) {
+            if (!this.matchCount) return;
+            this.goTo((this.matchPos + dir + this.matchCount) % this.matchCount, 'smooth');
+        },
+        goTo(i, behavior) {
+            const marks = this.marks();
+            marks.forEach(m => m.classList.remove('current'));
+            if (!marks[i]) return;
+            this.matchPos = i;
+            marks[i].classList.add('current');
+            marks[i].scrollIntoView({ block: 'center', behavior });
+        },
+
+        // ---------- helpers ----------
+        async copyLink() {
+            try {
+                await navigator.clipboard.writeText(location.href);
+                this.copied = true;
+                setTimeout(() => { this.copied = false; }, 1800);
+            } catch (e) { /* clipboard unavailable */ }
+        },
+        fmtDate(str) {
+            if (!str) return '';
+            const d = new Date(str);
+            if (isNaN(d)) return str;
+            return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+        },
+        readMinutes(words) { return Math.max(1, Math.round(words / 160)); },
+        kindLabel(ep) {
+            const t = ep.title || '';
+            if (/^uit het archief/i.test(t)) return 'Uit het archief';
+            if (/^bonus/i.test(t)) return 'Bonus';
+            if (ep.number) return 'Aflevering';
+            return 'Special';
+        },
+        yearRange() {
+            if (!this.years.length) return '';
+            return (Math.max(...this.years) - Math.min(...this.years) + 1);
+        },
+        topThemes() {
+            return [...this.themes].sort((a, b) => b.count - a.count).slice(0, 10);
+        },
+        countText() {
+            const n = this.results.length;
+            const noun = n === 1 ? 'aflevering' : 'afleveringen';
+            if (this.q.trim()) return `<b>${n}</b> ${noun} voor “${this.escape(this.q.trim())}”`;
+            if (this.theme || this.year) return `<b>${n}</b> ${noun}`;
+            return `<b>${n}</b> ${noun}, nieuwste eerst`;
+        },
+        statusText() {
+            switch (this.indexState) {
+                case 'loading': return 'Volledige tekst laden…';
+                case 'ready': return 'Doorzoekbaar op volledige tekst';
+                case 'error': return 'Alleen titels doorzoekbaar';
+                default: return 'Klik in het zoekveld om de volledige tekst te laden';
+            }
+        },
+    };
+}
+</script>
 </body>
 </html>

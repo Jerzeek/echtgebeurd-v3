@@ -106,24 +106,8 @@ def extract_keywords(text, n=10):
     return [word for word, count in sorted_words[:n]]
 
 def trim_transcription(text):
-    if not text:
-        return text
-    
-    # Case-insensitive search
-    lower_text = text.lower()
-    keyword = "aflevering"
-    
-    first_index = lower_text.find(keyword)
-    last_index = lower_text.rfind(keyword)
-    
-    # If "aflevering" appears less than twice (start and end markers), do not cut.
-    if first_index == -1 or last_index == -1 or first_index == last_index:
-        return text
-    
-    # Include the last occurrence fully
-    end_pos = last_index + len(keyword)
-    
-    return text[first_index:end_pos]
+    # Trimming disabled: return full text
+    return text
 
 def main():
     ensure_dirs()

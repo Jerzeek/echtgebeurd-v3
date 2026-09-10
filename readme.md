@@ -7,7 +7,7 @@ A project to archive, transcribe, and index episodes of the [Echt Gebeurd](https
 - **RSS Parsing**: Automatically fetches the latest episodes from the podcast feed.
 - **Audio Transcription**: Uses OpenAI's `whisper` model (medium) to transcribe Dutch audio to text.
 - **Keyword Extraction**: Analyzes transcriptions to extract relevant keywords for better searchability.
-- **Static Site Generation**: Builds a fast, lightweight HTML website to browse and read episodes.
+- **Static Site Generation**: Builds a fast, lightweight HTML website to browse and read episodes. The build step splits titles into episode number, theme and storyteller, strips marketing boilerplate from descriptions, and filters weak keywords.
 - **Asset Management**: Downloads and organizes audio, images, and transcription files.
 
 ## Prerequisites
@@ -65,6 +65,14 @@ You can serve the `docs` directory locally to preview the site:
 python -m http.server -d docs
 ```
 Then open `http://localhost:8000` in your browser.
+
+The site reads its state from the URL hash, so episodes and searches are linkable:
+
+- `#afl=542` opens episode 542 (`#ep=<guid>` for episodes without a number)
+- `#q=gevangenis` runs a full-text search; matches are highlighted in the transcript
+- `#thema=Kerst` and `#jaar=2024` apply the theme and year filters
+
+These combine, e.g. `#afl=100&q=gevangenis`.
 
 ## Project Structure
 
