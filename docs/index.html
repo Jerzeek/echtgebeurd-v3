@@ -529,7 +529,7 @@ function app() {
         // ---------- lifecycle ----------
         async init() {
             try {
-                const res = await fetch('data/episodes.json?v=8cd5a0b558');
+                const res = await fetch('data/episodes.json?v=87f615e995');
                 this.all = await res.json();
             } catch (e) {
                 console.error('Kon afleveringen niet laden', e);
@@ -597,7 +597,7 @@ function app() {
             if (this.indexState !== 'idle') return;
             this.indexState = 'loading';
             try {
-                const res = await fetch('data/search_index.json?v=8cd5a0b558');
+                const res = await fetch('data/search_index.json?v=87f615e995');
                 const docs = await res.json();
                 const index = new MiniSearch({
                     fields: ['title', 'who', 'theme', 'txt', 'keywords', 'desc'],
