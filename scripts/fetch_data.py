@@ -8,6 +8,8 @@ import platform
 import shutil
 import subprocess
 import tempfile
+import time
+import unicodedata
 from datetime import datetime
 
 # Some corporate networks intercept TLS, which breaks model downloads locally. Not needed on CI.
@@ -37,7 +39,9 @@ MAX_NEW_TRANSCRIPTIONS = int(MAX_NEW_TRANSCRIPTIONS) if MAX_NEW_TRANSCRIPTIONS n
 # Force one with TRANSCRIBE_ENGINE=openai or TRANSCRIBE_ENGINE=local.
 TRANSCRIBE_ENGINE = os.environ.get("TRANSCRIBE_ENGINE", "auto")
 OPENAI_MODEL = os.environ.get("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-transcribe")
-OPENAI_MAX_BYTES = 24 * 1024 * 1024  # the API rejects uploads over 25 MB
+# gpt-4o-transcribe silently stops after ~2000 output tokens (about 7 minutes of Dutch speech),
+# so long episodes are sent in pieces of at most this many seconds.
+OPENAI_CHUNK_SECONDS = 240
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "medium")
 
 def ensure_dirs():
@@ -59,7 +63,26 @@ def restore_published_transcriptions():
             restored += 1
     print(f"Restored {restored} transcription(s) from {PUBLISHED_TRANSCRIPTION_DIR}.")
 
+def normalize_transcription_names():
+    """Some feed titles contain decomposed characters (u + combining accent). macOS and git store those
+    file names precomposed (NFC), Linux keeps them byte-for-byte, so on CI the existing transcript was not
+    found and the episode was transcribed again under a second, decomposed name. Keep one NFC name."""
+    names = set(os.listdir(TRANSCRIPTION_DIR))
+    for name in sorted(names):
+        nfc = unicodedata.normalize("NFC", name)
+        if nfc == name:
+            continue
+        path = os.path.join(TRANSCRIPTION_DIR, name)
+        if nfc in names:
+            # Two separate files (only possible on Linux): keep the precomposed original.
+            os.remove(path)
+            print(f"Removed duplicate transcription with decomposed name: {name}")
+        elif not os.path.exists(os.path.join(TRANSCRIPTION_DIR, nfc)):
+            os.rename(path, os.path.join(TRANSCRIPTION_DIR, nfc))
+            print(f"Renamed transcription to precomposed name: {nfc}")
+
 def sanitize_filename(name):
+    name = unicodedata.normalize("NFC", name)
     return re.sub(r'[\\/*?:\"<>|]', "", name).replace(" ", "_").lower()
 
 def download_file(url, filepath):
@@ -83,15 +106,35 @@ def download_file(url, filepath):
 # Transcription engines
 # ---------------------------------------------------------------------------
 
-def shrink_audio(audio_path):
-    """Re-encode to a small mono MP3 so it fits under the API upload limit. Needs ffmpeg."""
-    out = os.path.join(tempfile.gettempdir(), os.path.splitext(os.path.basename(audio_path))[0] + "_small.mp3")
-    print(f"Audio is larger than {OPENAI_MAX_BYTES // (1024 * 1024)} MB, shrinking with ffmpeg...")
-    subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", "-i", audio_path, "-ac", "1", "-ar", "16000", "-b:a", "32k", out],
-        check=True,
+def audio_duration(audio_path):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", audio_path],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return float(out.strip())
+
+
+def find_pauses(audio_path):
+    """Midpoints (seconds) of short pauses, so chunks are cut between words instead of through them."""
+    result = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-nostats", "-i", audio_path,
+         "-af", "silencedetect=noise=-25dB:d=0.2", "-f", "null", "-"],
+        capture_output=True, text=True,
     )
-    return out
+    starts = [float(x) for x in re.findall(r"silence_start: (-?[\d.]+)", result.stderr)]
+    ends = [float(x) for x in re.findall(r"silence_end: (-?[\d.]+)", result.stderr)]
+    return [(a + b) / 2 for a, b in zip(starts, ends)]
+
+
+def chunk_boundaries(duration, pauses, max_seconds):
+    """Cut points [0, ..., duration]; each cut is the last pause in the final minute before the limit."""
+    points = [0.0]
+    while duration - points[-1] > max_seconds:
+        limit = points[-1] + max_seconds
+        candidates = [p for p in pauses if limit - 60 <= p <= limit]
+        points.append(max(candidates) if candidates else limit)
+    points.append(duration)
+    return points
 
 
 class OpenAITranscriber:
@@ -100,19 +143,45 @@ class OpenAITranscriber:
     def __init__(self):
         self.api_key = os.environ["OPENAI_API_KEY"]
 
-    def transcribe(self, audio_path):
-        path = shrink_audio(audio_path) if os.path.getsize(audio_path) > OPENAI_MAX_BYTES else audio_path
-        with open(path, "rb") as f:
-            response = requests.post(
-                "https://api.openai.com/v1/audio/transcriptions",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                files={"file": (os.path.basename(path), f, "audio/mpeg")},
-                data={"model": OPENAI_MODEL, "language": "nl", "response_format": "json"},
-                timeout=900,
-            )
-        if response.status_code != 200:
+    def _request(self, chunk_path, prompt):
+        data = {"model": OPENAI_MODEL, "language": "nl", "response_format": "json"}
+        if prompt:
+            data["prompt"] = prompt
+        for attempt in range(3):
+            with open(chunk_path, "rb") as f:
+                response = requests.post(
+                    "https://api.openai.com/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    files={"file": (os.path.basename(chunk_path), f, "audio/mpeg")},
+                    data=data,
+                    timeout=300,
+                )
+            if response.status_code == 200:
+                return response.json()["text"].strip()
+            if response.status_code in (429, 500, 502, 503) and attempt < 2:
+                time.sleep(10 * (attempt + 1))
+                continue
             raise RuntimeError(f"OpenAI API returned {response.status_code}: {response.text[:300]}")
-        return response.json()["text"]
+
+    def transcribe(self, audio_path):
+        duration = audio_duration(audio_path)
+        points = chunk_boundaries(duration, find_pauses(audio_path), OPENAI_CHUNK_SECONDS)
+        print(f"  {duration / 60:.1f} min of audio, sending {len(points) - 1} chunk(s).")
+        parts = []
+        with tempfile.TemporaryDirectory() as tmp:
+            for i, (start, end) in enumerate(zip(points, points[1:])):
+                chunk_path = os.path.join(tmp, f"chunk_{i:03d}.mp3")
+                subprocess.run(
+                    ["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{start:.3f}", "-t", f"{end - start:.3f}",
+                     "-i", audio_path, "-ac", "1", "-ar", "16000", "-b:a", "32k", chunk_path],
+                    check=True,
+                )
+                # The end of the previous chunk gives the model context to continue mid-story.
+                prompt = parts[-1][-300:].split(" ", 1)[-1] if parts else None
+                text = self._request(chunk_path, prompt)
+                if text:
+                    parts.append(text)
+        return " ".join(parts)
 
 
 class LocalWhisperTranscriber:
@@ -211,6 +280,7 @@ def trim_transcription(text):
 def main():
     ensure_dirs()
     restore_published_transcriptions()
+    normalize_transcription_names()
     
     print(f"Parsing RSS feed: {RSS_URL}")
     try:
@@ -303,8 +373,7 @@ def main():
                     with open(transcription_path, 'r', encoding='utf-8') as f:
                         text = f.read()
                     episode['transcription_file'] = f"assets/transcriptions/{transcription_filename}"
-                    if not episode.get('keywords'):
-                        episode['keywords'] = extract_keywords(text)
+                    episode['keywords'] = extract_keywords(text)
                 elif MAX_NEW_TRANSCRIPTIONS is not None and transcribed_this_run >= MAX_NEW_TRANSCRIPTIONS:
                     print(f"Skipping transcription of '{title}': cap of {MAX_NEW_TRANSCRIPTIONS} per run reached.")
                 else:
