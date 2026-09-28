@@ -15,6 +15,15 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/minisearch@6.3.0/dist/umd/index.min.js"></script>
 
+    <!-- GoatCounter: cookieless visitor statistics. The app reports views itself (see track()),
+         because episodes live in the #hash, which GoatCounter ignores by default.
+         Calls made before the script has loaded are queued and sent on load. Localhost is never counted. -->
+    <script>window.gcQueue = [];</script>
+    <script data-goatcounter="https://jerzeek.goatcounter.com/count"
+            data-goatcounter-settings='{"no_onload": true}'
+            onload="window.gcQueue.forEach(function (o) { window.goatcounter.count(o) }); window.gcQueue = null;"
+            async src="https://gc.zgo.at/count.js"></script>
+
     <style>
         :root {
             --bg: #f4efe6;
@@ -304,7 +313,7 @@
 </head>
 <body>
 
-<div class="app" x-data="app()" x-init="init()" x-cloak>
+<div class="app" x-data="app()" x-cloak>
 
     <header class="topbar">
         <a class="brand" href="#" @click.prevent="showList()">
@@ -435,48 +444,48 @@
                     </button>
 
                     <div class="eyebrow">
-                        <template x-if="selected.theme">
-                            <button class="theme-chip" @click="theme = selected.theme; apply()" x-text="selected.theme" title="Alle verhalen met dit thema"></button>
+                        <template x-if="selected?.theme">
+                            <button class="theme-chip" @click="theme = selected?.theme; apply()" x-text="selected?.theme" title="Alle verhalen met dit thema"></button>
                         </template>
-                        <span x-text="selected.number ? 'Aflevering ' + selected.number : kindLabel(selected)"></span>
+                        <span x-text="selected?.number ? 'Aflevering ' + selected?.number : kindLabel(selected || {})"></span>
                     </div>
 
                     <div class="hero">
-                        <template x-if="selected.image_file">
-                            <img :src="selected.image_file" :alt="'Afbeelding bij ' + selected.title" loading="lazy">
+                        <template x-if="selected?.image_file">
+                            <img :src="selected?.image_file" :alt="'Afbeelding bij ' + selected?.title" loading="lazy">
                         </template>
                         <div>
-                            <h1 class="title" x-text="selected.storyteller || selected.title"></h1>
+                            <h1 class="title" x-text="selected?.storyteller || selected?.title"></h1>
                             <div class="meta">
-                                <span x-text="fmtDate(selected.published)"></span>
-                                <span x-show="selected.words" x-text="'± ' + readMinutes(selected.words) + ' min lezen'"></span>
+                                <span x-text="fmtDate(selected?.published)"></span>
+                                <span x-show="selected?.words" x-text="'± ' + readMinutes(selected?.words) + ' min lezen'"></span>
                             </div>
                         </div>
                     </div>
 
-                    <audio controls preload="none" :src="selected.audio_file" x-ref="audio"></audio>
+                    <audio controls preload="none" :src="selected?.audio_file" x-ref="audio"></audio>
 
                     <div class="actions">
                         <button class="btn" @click="copyLink()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>
                             <span x-text="copied ? 'Link gekopieerd' : 'Kopieer link'"></span>
                         </button>
-                        <a class="btn" :href="selected.original_link" target="_blank" rel="noopener">
+                        <a class="btn" :href="selected?.original_link" target="_blank" rel="noopener">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
                             Origineel
                         </a>
                     </div>
 
-                    <div class="desc" x-show="selected.description" x-html="selected.description"></div>
+                    <div class="desc" x-show="selected?.description" x-html="selected?.description"></div>
 
-                    <div class="tags" x-show="selected.keywords && selected.keywords.length">
-                        <template x-for="kw in selected.keywords" :key="kw">
+                    <div class="tags" x-show="selected?.keywords?.length">
+                        <template x-for="kw in (selected?.keywords || [])" :key="kw">
                             <button class="tag" @click="searchFor(kw)" x-text="kw" title="Zoek op dit woord"></button>
                         </template>
                     </div>
 
                     <div class="transcript-head">
-                        <h2>Transcriptie <span class="sub" x-show="selected.words" x-text="selected.words.toLocaleString('nl-NL') + ' woorden'"></span></h2>
+                        <h2>Transcriptie <span class="sub" x-show="selected?.words" x-text="(selected?.words || 0).toLocaleString('nl-NL') + ' woorden'"></span></h2>
                         <div class="matchnav" x-show="q && transcriptState === 'ready'">
                             <button @click="step(-1)" aria-label="Vorige treffer">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
@@ -493,7 +502,7 @@
                     <div class="transcript-note" x-show="transcriptState === 'error'">De transcriptie kon niet worden geladen.</div>
 
                     <div class="transcript" x-show="transcriptState === 'ready'" x-ref="transcript">
-                        <template x-for="(p, i) in renderedParagraphs()" :key="selected.guid + '-' + i">
+                        <template x-for="(p, i) in renderedParagraphs()" :key="selected?.guid + '-' + i">
                             <p x-html="p"></p>
                         </template>
                     </div>
@@ -525,6 +534,8 @@ function app() {
         matchCount: 0,
         matchPos: 0,
         copied: false,
+        lastTrackedSearch: '',
+        searchTrackTimer: null,
 
         // ---------- lifecycle ----------
         async init() {
@@ -548,7 +559,9 @@ function app() {
 
             this.readHash();
             this.apply();
+            if (!this.selected) this.trackView();
             window.addEventListener('hashchange', () => { this.readHash(); this.apply(); });
+            this.$watch('theme', (t) => { if (t) this.track({ path: 'thema/' + t, title: 'Thema', event: true }); });
 
             window.addEventListener('keydown', (e) => {
                 const typing = /^(input|textarea|select)$/i.test(document.activeElement?.tagName || '');
@@ -576,7 +589,7 @@ function app() {
             if (afl) target = this.all.find(e => String(e.number) === afl);
             if (!target && ep) target = this.all.find(e => e.guid === ep);
             if (target && (!this.selected || this.selected.guid !== target.guid)) this.select(target, false);
-            if (!target && this.selected) { this.selected = null; document.title = 'Echt Gebeurd Archief'; }
+            if (!target && this.selected) { this.selected = null; document.title = 'Echt Gebeurd Archief'; this.trackView(); }
         },
         writeHash(push) {
             const params = new URLSearchParams();
@@ -625,6 +638,7 @@ function app() {
             this.apply();
             this.writeHash(false);
             this.$nextTick(() => this.refreshMatches(true));
+            this.trackSearchSoon();
         },
 
         terms() {
@@ -713,6 +727,7 @@ function app() {
             this.copied = false;
             document.title = (ep.title || 'Aflevering') + ' · Echt Gebeurd Archief';
             if (push) this.writeHash(true);
+            this.trackView();
             this.$nextTick(() => { if (this.$refs.detail) this.$refs.detail.scrollTop = 0; });
 
             if (!ep.transcription_file) { this.transcriptState = 'none'; return; }
@@ -733,6 +748,33 @@ function app() {
             this.selected = null;
             document.title = 'Echt Gebeurd Archief';
             this.writeHash(true);
+            this.trackView();
+        },
+
+        // ---------- statistics (GoatCounter) ----------
+        track(opts) {
+            try {
+                if (window.goatcounter && window.goatcounter.count) window.goatcounter.count(opts);
+                else if (window.gcQueue) window.gcQueue.push(opts);
+            } catch (e) { /* statistics must never break the site */ }
+        },
+        trackView() {
+            const ep = this.selected;
+            if (!ep) return this.track({ path: '/', title: 'Overzicht' });
+            this.track({
+                path: ep.number ? '/afl/' + ep.number : '/ep/' + ep.guid,
+                title: ep.title || 'Aflevering',
+            });
+        },
+        // Count a search once the visitor stops typing, so "g", "ge", "gev"... are not all counted.
+        trackSearchSoon() {
+            clearTimeout(this.searchTrackTimer);
+            this.searchTrackTimer = setTimeout(() => {
+                const q = this.q.trim().toLowerCase();
+                if (q.length < 3 || q === this.lastTrackedSearch) return;
+                this.lastTrackedSearch = q;
+                this.track({ path: 'zoek/' + q, title: 'Zoekopdracht', event: true });
+            }, 1500);
         },
 
         splitParagraphs(text) {

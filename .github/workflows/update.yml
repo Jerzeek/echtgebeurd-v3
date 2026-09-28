@@ -3,7 +3,11 @@ name: Update episodes
 on:
   schedule:
     # New episodes are published on Thursday mornings; run shortly after.
+    # Times are UTC. GitHub delays (or occasionally drops) scheduled runs,
+    # especially on :00/:30, so use an off-peak minute plus a later fallback.
+    # A second run is a no-op when the first already picked everything up.
     - cron: "30 7 * * 4"
+    - cron: "30 11 * * 4"
   workflow_dispatch:
     inputs:
       max_new:

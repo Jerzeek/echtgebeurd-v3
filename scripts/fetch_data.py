@@ -51,9 +51,12 @@ def ensure_dirs():
     os.makedirs(TRANSCRIPTION_DIR, exist_ok=True)
 
 def restore_published_transcriptions():
-    """On a fresh clone (empty assets/transcriptions) copy the transcripts already published in docs/ back."""
-    if any(n.endswith(".txt") for n in os.listdir(TRANSCRIPTION_DIR)):
-        return
+    """Copy the published transcripts from docs/ into assets/, overwriting local copies.
+
+    docs/ is committed and is what the weekly GitHub run updates (and cleans), so it is the source of truth.
+    Without this, a local build would overwrite newer published transcripts with stale local ones.
+    To force a transcript to be redone, delete it from both docs/assets/transcriptions and assets/transcriptions.
+    """
     if not os.path.isdir(PUBLISHED_TRANSCRIPTION_DIR):
         return
     restored = 0
@@ -61,25 +64,7 @@ def restore_published_transcriptions():
         if name.endswith(".txt"):
             shutil.copy2(os.path.join(PUBLISHED_TRANSCRIPTION_DIR, name), os.path.join(TRANSCRIPTION_DIR, name))
             restored += 1
-    print(f"Restored {restored} transcription(s) from {PUBLISHED_TRANSCRIPTION_DIR}.")
-
-def normalize_transcription_names():
-    """Some feed titles contain decomposed characters (u + combining accent). macOS and git store those
-    file names precomposed (NFC), Linux keeps them byte-for-byte, so on CI the existing transcript was not
-    found and the episode was transcribed again under a second, decomposed name. Keep one NFC name."""
-    names = set(os.listdir(TRANSCRIPTION_DIR))
-    for name in sorted(names):
-        nfc = unicodedata.normalize("NFC", name)
-        if nfc == name:
-            continue
-        path = os.path.join(TRANSCRIPTION_DIR, name)
-        if nfc in names:
-            # Two separate files (only possible on Linux): keep the precomposed original.
-            os.remove(path)
-            print(f"Removed duplicate transcription with decomposed name: {name}")
-        elif not os.path.exists(os.path.join(TRANSCRIPTION_DIR, nfc)):
-            os.rename(path, os.path.join(TRANSCRIPTION_DIR, nfc))
-            print(f"Renamed transcription to precomposed name: {nfc}")
+    print(f"Synced {restored} published transcription(s) from {PUBLISHED_TRANSCRIPTION_DIR}.")
 
 def sanitize_filename(name):
     name = unicodedata.normalize("NFC", name)

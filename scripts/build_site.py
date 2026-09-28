@@ -13,6 +13,8 @@ BASE_DIR = os.getcwd()
 DATA_DIR = os.path.join(BASE_DIR, "data")
 EPISODES_FILE = os.path.join(DATA_DIR, "episodes.json")
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
+# Custom domain for GitHub Pages. Written to docs/CNAME on every build so it can never go missing.
+CUSTOM_DOMAIN = "echtgebeurdarchief.nl"
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
 ASSETS_SRC = os.path.join(BASE_DIR, "assets")
 ASSETS_DEST = os.path.join(DOCS_DIR, "assets")
@@ -216,7 +218,20 @@ def main():
         f.write(output)
     print(f"Site shell generated at {output_path}")
 
+    with open(os.path.join(DOCS_DIR, "CNAME"), "w", encoding="utf-8") as f:
+        f.write(CUSTOM_DOMAIN)
+
     if os.path.exists(ASSETS_SRC):
+        # Safety net: never drop a published transcript just because it is missing locally
+        # (e.g. one the weekly GitHub run added that has not been fetched into assets/ yet).
+        published = os.path.join(ASSETS_DEST, "transcriptions")
+        local = os.path.join(ASSETS_SRC, "transcriptions")
+        if os.path.isdir(published):
+            os.makedirs(local, exist_ok=True)
+            for name in os.listdir(published):
+                if name.endswith(".txt") and not os.path.exists(os.path.join(local, name)):
+                    shutil.copy2(os.path.join(published, name), os.path.join(local, name))
+                    print(f"Kept published transcript missing locally: {name}")
         if os.path.exists(ASSETS_DEST):
             shutil.rmtree(ASSETS_DEST)
         shutil.copytree(ASSETS_SRC, ASSETS_DEST, ignore=shutil.ignore_patterns("audio", ".DS_Store"))
