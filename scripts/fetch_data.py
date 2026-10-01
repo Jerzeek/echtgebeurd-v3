@@ -66,6 +66,24 @@ def restore_published_transcriptions():
             restored += 1
     print(f"Synced {restored} published transcription(s) from {PUBLISHED_TRANSCRIPTION_DIR}.")
 
+def normalize_transcription_names():
+    """Some feed titles contain decomposed characters (u + combining accent). macOS and git store those
+    file names precomposed (NFC), Linux keeps them byte-for-byte, so on CI the existing transcript was not
+    found and the episode was transcribed again under a second, decomposed name. Keep one NFC name."""
+    names = set(os.listdir(TRANSCRIPTION_DIR))
+    for name in sorted(names):
+        nfc = unicodedata.normalize("NFC", name)
+        if nfc == name:
+            continue
+        path = os.path.join(TRANSCRIPTION_DIR, name)
+        if nfc in names:
+            # Two separate files (only possible on Linux): keep the precomposed original.
+            os.remove(path)
+            print(f"Removed duplicate transcription with decomposed name: {name}")
+        elif not os.path.exists(os.path.join(TRANSCRIPTION_DIR, nfc)):
+            os.rename(path, os.path.join(TRANSCRIPTION_DIR, nfc))
+            print(f"Renamed transcription to precomposed name: {nfc}")
+
 def sanitize_filename(name):
     name = unicodedata.normalize("NFC", name)
     return re.sub(r'[\\/*?:\"<>|]', "", name).replace(" ", "_").lower()
