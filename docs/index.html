@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
     <title>Echt Gebeurd Archief</title>
-    <meta name="description" content="Doorzoek alle 583 afleveringen van de podcast Echt Gebeurd op verteller, thema en de volledige transcriptie.">
+    <meta name="description" content="Doorzoek alle 584 afleveringen van de podcast Echt Gebeurd op verteller, thema en de volledige transcriptie.">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b8401f'/%3E%3Ctext x='32' y='52' text-anchor='middle' font-family='Georgia,serif' font-size='52' font-weight='700' fill='%23fff4e8'%3E%E2%80%9E%3C/text%3E%3C/svg%3E">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -540,7 +540,7 @@ function app() {
         // ---------- lifecycle ----------
         async init() {
             try {
-                const res = await fetch('data/episodes.json?v=514507e6e5');
+                const res = await fetch('data/episodes.json?v=12bb31b51f');
                 this.all = await res.json();
             } catch (e) {
                 console.error('Kon afleveringen niet laden', e);
@@ -610,7 +610,7 @@ function app() {
             if (this.indexState !== 'idle') return;
             this.indexState = 'loading';
             try {
-                const res = await fetch('data/search_index.json?v=514507e6e5');
+                const res = await fetch('data/search_index.json?v=12bb31b51f');
                 const docs = await res.json();
                 const index = new MiniSearch({
                     fields: ['title', 'who', 'theme', 'txt', 'keywords', 'desc'],
